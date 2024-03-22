@@ -3,15 +3,15 @@ import ShoppingList from "./ShoppingList";
 import Header from "./Header";
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [theme, setTheme] = useState("light");
 
-  function handleDarkModeClick() {
-    setIsDarkMode((isDarkMode) => !isDarkMode);
+  function toggleTheme() {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   }
 
   return (
-    <div className={"App " + (isDarkMode ? "dark" : "light")}>
-      <Header isDarkMode={isDarkMode} onDarkModeClick={handleDarkModeClick} />
+    <div className={`App ${theme}`}>
+      <Header isDarkMode={theme === "dark"} onDarkModeClick={toggleTheme} />
       <ShoppingList />
     </div>
   );

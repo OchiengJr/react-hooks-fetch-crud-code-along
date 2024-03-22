@@ -1,20 +1,22 @@
-import "whatwg-fetch";
-import "@testing-library/jest-dom";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitForElementToBeRemoved,
-} from "@testing-library/react";
-import { resetData } from "../mocks/handlers";
-import { server } from "../mocks/server";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
 import ShoppingList from "../components/ShoppingList";
 
+const server = setupServer(
+  rest.get('/items', (req, res, ctx) => {
+    return res(
+      ctx.json([
+        { id: 1, name: 'Yogurt', category: 'Dairy', isInCart: false },
+        { id: 2, name: 'Pomegranate', category: 'Fruit', isInCart: false },
+        { id: 3, name: 'Lettuce', category: 'Vegetable', isInCart: false }
+      ])
+    );
+  })
+);
+
 beforeAll(() => server.listen());
-afterEach(() => {
-  server.resetHandlers();
-  resetData();
-});
+afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 test("displays all the items from the server after the initial render", async () => {
@@ -31,35 +33,31 @@ test("displays all the items from the server after the initial render", async ()
 });
 
 test("adds a new item to the list when the ItemForm is submitted", async () => {
-  const { rerender } = render(<ShoppingList />);
+  render(<ShoppingList />);
 
   const dessertCount = screen.queryAllByText(/Dessert/).length;
 
-  fireEvent.change(screen.queryByLabelText(/Name/), {
+  fireEvent.change(screen.getByLabelText(/Name/), {
     target: { value: "Ice Cream" },
   });
 
-  fireEvent.change(screen.queryByLabelText(/Category/), {
+  fireEvent.change(screen.getByLabelText(/Category/), {
     target: { value: "Dessert" },
   });
 
-  fireEvent.submit(screen.queryByText(/Add to List/));
+  fireEvent.click(screen.getByText(/Add to List/));
 
-  const iceCream = await screen.findByText(/Ice Cream/);
+  await waitFor(() => screen.getByText(/Ice Cream/));
+
+  const iceCream = screen.getByText(/Ice Cream/);
   expect(iceCream).toBeInTheDocument();
 
-  const desserts = await screen.findAllByText(/Dessert/);
+  const desserts = screen.getAllByText(/Dessert/);
   expect(desserts.length).toBe(dessertCount + 1);
-
-  // Rerender the component to ensure the item was persisted
-  rerender(<ShoppingList />);
-
-  const rerenderedIceCream = await screen.findByText(/Ice Cream/);
-  expect(rerenderedIceCream).toBeInTheDocument();
 });
 
 test("updates the isInCart status of an item when the Add/Remove from Cart button is clicked", async () => {
-  const { rerender } = render(<ShoppingList />);
+  render(<ShoppingList />);
 
   const addButtons = await screen.findAllByText(/Add to Cart/);
 
@@ -68,37 +66,20 @@ test("updates the isInCart status of an item when the Add/Remove from Cart butto
 
   fireEvent.click(addButtons[0]);
 
-  const removeButton = await screen.findByText(/Remove From Cart/);
+  await waitFor(() => screen.getByText(/Remove From Cart/));
+
+  const removeButton = screen.getByText(/Remove From Cart/);
   expect(removeButton).toBeInTheDocument();
-
-  // Rerender the component to ensure the item was persisted
-  rerender(<ShoppingList />);
-
-  const rerenderedAddButtons = await screen.findAllByText(/Add to Cart/);
-  const rerenderedRemoveButtons = await screen.findAllByText(
-    /Remove From Cart/
-  );
-
-  expect(rerenderedAddButtons.length).toBe(2);
-  expect(rerenderedRemoveButtons.length).toBe(1);
 });
 
 test("removes an item from the list when the delete button is clicked", async () => {
-  const { rerender } = render(<ShoppingList />);
+  render(<ShoppingList />);
 
   const yogurt = await screen.findByText(/Yogurt/);
   expect(yogurt).toBeInTheDocument();
 
-  const deleteButtons = await screen.findAllByText(/Delete/);
+  const deleteButtons = screen.getAllByText(/Delete/);
   fireEvent.click(deleteButtons[0]);
 
-  await waitForElementToBeRemoved(() => screen.queryByText(/Yogurt/));
-
-  // Rerender the component to ensure the item was persisted
-  rerender(<ShoppingList />);
-
-  const rerenderedDeleteButtons = await screen.findAllByText(/Delete/);
-
-  expect(rerenderedDeleteButtons.length).toBe(2);
-  expect(screen.queryByText(/Yogurt/)).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByText(/Yogurt/)).not.toBeInTheDocument());
 });

@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 
-function ItemForm({onAddItem}) {
+function ItemForm({ onAddItem }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Produce");
 
-  // Add function to handle submissions
+  // Function to handle form submission
   function handleSubmit(e) {
     e.preventDefault();
-    const itemData = {
+    if (!name.trim()) {
+      // If name is empty, don't submit
+      return;
+    }
+    const newItem = {
       name: name,
       category: category,
       isInCart: false,
@@ -17,10 +21,21 @@ function ItemForm({onAddItem}) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(itemData),
+      body: JSON.stringify(newItem),
     })
-      .then((r) => r.json())
-      .then((newItem) => onAddItem(newItem));
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to add item.");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        onAddItem(data); // Call onAddItem with the new item data
+        setName(""); // Clear the name input after submission
+      })
+      .catch((error) => {
+        console.error("Error adding item:", error);
+      });
   }
 
   return (

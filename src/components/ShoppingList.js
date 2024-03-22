@@ -4,51 +4,64 @@ import Filter from "./Filter";
 import Item from "./Item";
 
 function ShoppingList() {
+  // State variables
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Fetch items from server
   useEffect(() => {
     fetch("http://localhost:4000/items")
-      .then((res) => res.json())
-      .then((item) => setItems(item))
-  }, [])
-  
-  // add this callback function
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch items");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setItems(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        setError(error.message);
+        setLoading(false);
+      });
+  }, []);
+
+  // Callback function to handle item update
   function handleUpdateItem(updatedItem) {
-    const updatedItems = items.map((item) =>{
-      if(item.id === updatedItem.id){
-        return updatedItem
-      }
-      else{
-        return item
-      }
-    })
-    setItems(updatedItems)
+    const updatedItems = items.map((item) =>
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    setItems(updatedItems);
   }
 
-  function handleAddItem(newItem){
-    setItems([...items, newItem])
-    console.log("In ShoppingList", newItem)
+  // Callback function to handle item addition
+  function handleAddItem(newItem) {
+    setItems([...items, newItem]);
   }
 
-  function handleDeleteItem(deletedItem){
+  // Callback function to handle item deletion
+  function handleDeleteItem(deletedItem) {
     const updatedItems = items.filter((item) => item.id !== deletedItem.id);
-    setItems(updatedItems)
+    setItems(updatedItems);
   }
 
+  // Callback function to handle category change
   function handleCategoryChange(category) {
     setSelectedCategory(category);
   }
 
-  const itemsToDisplay = items.filter((item) => {
-    if (selectedCategory === "All") return true;
-
-    return item.category === selectedCategory;
-  });
+  // Filter items based on selected category
+  const itemsToDisplay = selectedCategory === "All" ?
+    items :
+    items.filter((item) => item.category === selectedCategory);
 
   return (
     <div className="ShoppingList">
-      {/* add the onAddItem prop! */}
+      {loading && <p>Loading...</p>}
+      {error && <p>Error: {error}</p>}
       <ItemForm onAddItem={handleAddItem} />
       <Filter
         category={selectedCategory}
@@ -56,9 +69,12 @@ function ShoppingList() {
       />
       <ul className="Items">
         {itemsToDisplay.map((item) => (
-          <Item key={item.id} item={item} 
-          onUpdateItem={handleUpdateItem}
-          onDeleteItem={handleDeleteItem}/>
+          <Item
+            key={item.id}
+            item={item}
+            onUpdateItem={handleUpdateItem}
+            onDeleteItem={handleDeleteItem}
+          />
         ))}
       </ul>
     </div>

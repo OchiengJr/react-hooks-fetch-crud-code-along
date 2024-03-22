@@ -1,14 +1,20 @@
 import React from "react";
 
 function Filter({ category, onCategoryChange }) {
+  const handleChange = (e) => {
+    onCategoryChange(e.target.value);
+  };
+
   return (
     <div className="Filter">
+      <label htmlFor="filter">Filter by category:</label>
       <select
+        id="filter"
         name="filter"
         value={category}
-        onChange={(e) => onCategoryChange(e.target.value)}
+        onChange={handleChange}
       >
-        <option value="All">Filter by category</option>
+        <option value="All">All</option>
         <option value="Produce">Produce</option>
         <option value="Dairy">Dairy</option>
         <option value="Dessert">Dessert</option>
